@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { generateTileset, generateCaveBack } from "../art/tileset";
-import { generatePlayerTextures, generateItemIcons } from "../art/sprites";
+import { generatePlayerTextures, generateItemIcons, generateUiIcons } from "../art/sprites";
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -12,6 +12,7 @@ export class BootScene extends Phaser.Scene {
     generateCaveBack(this);
     generatePlayerTextures(this);
     generateItemIcons(this);
+    generateUiIcons(this);
     this.scene.start("Menu");
   }
 }

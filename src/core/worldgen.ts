@@ -1,4 +1,4 @@
-import { BEDROCK_ROWS, CHUNK_W, SURFACE_BASE, WORLD_H } from "./constants";
+import { BEDROCK_ROWS, CHUNK_W, SEA_LEVEL, SURFACE_BASE, WORLD_H } from "./constants";
 import { fbm1D, fbm2D, hash2 } from "./rng";
 import { Tile } from "./tiles";
 
@@ -43,6 +43,8 @@ export function generateChunk(cx: number, seed: number): Uint16Array {
     const wx = start + lx;
     const surfaceY = surfaceHeight(seed, wx);
     const dirtDepth = 4 + Math.floor(hash2(seed + 12, wx, 3) * 3);
+    const underwater = surfaceY > SEA_LEVEL; // ground dips below sea level → basin
+    const sandy = surfaceY >= SEA_LEVEL - 2; // shorelines and lakebeds are sandy
 
     for (let y = 0; y < WORLD_H; y++) {
       const idx = lx * WORLD_H + y;
@@ -51,9 +53,10 @@ export function generateChunk(cx: number, seed: number): Uint16Array {
       if (y >= WORLD_H - BEDROCK_ROWS) {
         id = Tile.BEDROCK;
       } else if (y < surfaceY) {
-        id = Tile.AIR;
+        id = underwater && y >= SEA_LEVEL ? Tile.WATER : Tile.AIR;
       } else if (y < surfaceY + dirtDepth) {
-        id = y === surfaceY ? Tile.GRASS : Tile.DIRT;
+        if (sandy) id = Tile.SAND;
+        else id = y === surfaceY ? Tile.GRASS : Tile.DIRT;
       } else {
         const depth = y - surfaceY;
         if (isCave(seed, wx, y)) {
@@ -65,7 +68,7 @@ export function generateChunk(cx: number, seed: number): Uint16Array {
       data[idx] = id;
     }
 
-    // Surface decoration on the grass top (only if the top tile is grass/open above).
+    // Surface decoration on the grass top (only on dry grassy land).
     const topIdx = lx * WORLD_H + surfaceY;
     if (data[topIdx] === Tile.GRASS && surfaceY - 1 >= 0) {
       const r = hash2(seed + 88, wx, 1);
@@ -79,6 +82,7 @@ export function generateChunk(cx: number, seed: number): Uint16Array {
     const th = treeAt(seed, wx);
     if (th === 0) continue;
     const groundY = surfaceHeight(seed, wx);
+    if (groundY >= SEA_LEVEL - 2) continue; // no trees on beaches / in water
     stampTree(data, start, wx, groundY, th, seed);
   }
 

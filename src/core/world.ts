@@ -1,4 +1,4 @@
-import { CHUNK_W, WORLD_H } from "./constants";
+import { CHUNK_W, SEA_LEVEL, WORLD_H } from "./constants";
 import { generateChunk, surfaceHeight } from "./worldgen";
 import { Tile, isSolid, tileDef } from "./tiles";
 
@@ -92,11 +92,17 @@ export class World {
     return !!tileDef(this.getTile(wx, wy)).climb;
   }
 
-  /** A clear spawn position (world tile coords) at the origin surface. */
+  /** A clear, dry spawn position (world tile coords) near the origin. */
   spawnTile(): { x: number; y: number } {
-    const x = 0;
-    const y = surfaceHeight(this.seed, x) - 2;
-    return { x, y };
+    for (let dx = 0; dx < 200; dx++) {
+      for (const x of [dx, -dx]) {
+        const surf = surfaceHeight(this.seed, x);
+        if (surf < SEA_LEVEL - 2 && this.getTile(x, surf) === Tile.GRASS) {
+          return { x, y: surf - 2 };
+        }
+      }
+    }
+    return { x: 0, y: surfaceHeight(this.seed, 0) - 2 };
   }
 
   /** Advance plant growth. dt in ms. */

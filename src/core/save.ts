@@ -9,6 +9,7 @@ export interface SaveData {
   seed: number;
   character: string;
   player: { x: number; y: number };
+  health?: number;
   inventory: Slot[];
   hotbar: number;
   edits: Record<string, number>;
@@ -57,12 +58,14 @@ export function snapshot(
   hotbar: number,
   character: string,
   player: { x: number; y: number },
+  health: number,
 ): SaveData {
   return {
     version: VERSION,
     seed: world.seed,
     character,
     player,
+    health,
     inventory: inv.serialize(),
     hotbar,
     edits: Object.fromEntries(world.edits),

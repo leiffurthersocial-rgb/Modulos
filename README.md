@@ -10,11 +10,17 @@ left off.
 
 ## Play
 
-- **Menu** — pick one of eight characters (Robin, Leif, Jovan, Leonidas, Erim, Till,
-  Lenni, Tusya) as your avatar, then **Play**. If you have a saved world, **Continue**.
-- **World** — an endless side-view world: grassy hills and trees on the surface, dirt,
-  then stone with **caves and ore** (coal, iron, gold, gem) as you dig deeper, down to
-  bedrock. A day/night cycle darkens the surface and caves are dark underground.
+- **Main menu** — the first choice is **Continue Saved World** (so you never lose a
+  world by accident); **Create New World** takes you to character select (Robin, Leif,
+  Jovan, Leonidas, Erim, Till, Lenni, Tusya) and a **Start** button. There's also a
+  **Settings** page.
+- **World** — an endless side-view world: grassy hills and trees on the surface,
+  **oceans and lakes with sandy beaches**, dirt, then stone with **caves and ore**
+  (coal, iron, gold, gem) as you dig deeper, down to bedrock. A day/night cycle darkens
+  the surface and caves are dark underground.
+- **Health** — you have a row of hearts. **Falling too far hurts** (and can kill you —
+  you respawn at the surface), and health slowly regenerates when you're safe. You
+  **swim** in water.
 
 ### Controls
 

@@ -38,6 +38,7 @@ export class Hud {
     this.scene = scene;
     this.inv = inv;
     this.buildHotbar();
+    this.buildHearts();
     this.buildInventory();
     this.buildSettings();
 
@@ -77,6 +78,29 @@ export class Hud {
         else this.select(idx);
       });
       this.hotbarSlots.push(s);
+    }
+  }
+
+  private hearts: Phaser.GameObjects.Image[] = [];
+
+  private buildHearts(): void {
+    for (let i = 0; i < 10; i++) {
+      const h = this.scene.add
+        .image(16 + i * 15, 18, "heart_full")
+        .setScale(1.4)
+        .setScrollFactor(0)
+        .setDepth(1500);
+      this.hearts.push(h);
+      this.objects.push(h);
+    }
+  }
+
+  setHealth(cur: number, max: number): void {
+    const perHeart = max / this.hearts.length;
+    for (let i = 0; i < this.hearts.length; i++) {
+      const hpAt = cur - i * perHeart;
+      const key = hpAt >= perHeart ? "heart_full" : hpAt >= perHeart / 2 ? "heart_half" : "heart_empty";
+      this.hearts[i].setTexture(key);
     }
   }
 

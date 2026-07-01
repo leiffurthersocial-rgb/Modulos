@@ -6,6 +6,7 @@ import { Tile, tileDef } from "../core/tiles";
 import { Inventory } from "../core/inventory";
 import { itemDef } from "../core/items";
 import { hasSave, loadSave, writeSave, clearSave, snapshot } from "../core/save";
+import { tileFrame } from "../art/tileset";
 import { Player } from "../entities/Player";
 import { Hud } from "../ui/Hud";
 import { getCharacterById } from "../config/characters";
@@ -34,6 +35,12 @@ export class GameScene extends Phaser.Scene {
   private timeOfDay = 0.25; // start at morning
   private character!: string;
 
+  private maxHealth = 100;
+  private health = 100;
+  private lastDamageMs = -9999;
+  private now = 0;
+  private damageFlash!: Phaser.GameObjects.Rectangle;
+
   constructor() {
     super("Game");
   }
@@ -43,13 +50,16 @@ export class GameScene extends Phaser.Scene {
     this.character = save?.character ?? gameState.selectedCharacterId;
     const seed = save?.seed ?? (Math.floor(Math.random() * 0xffffffff) >>> 0);
     this.world = new World(seed, save?.edits);
+    if (save?.health) this.health = save.health;
 
     this.inv = new Inventory(undefined, save?.inventory);
     if (!save) {
-      // starter kit so the world is immediately interactive
+      // starter kit so the world is immediately interactive AND you can place blocks
       this.inv.add("wood_pickaxe", 1);
       this.inv.add("wood_axe", 1);
-      this.inv.add("torch", 5);
+      this.inv.add("dirt", 30);
+      this.inv.add("planks", 20);
+      this.inv.add("torch", 10);
     }
 
     const spriteKey = getCharacterById(this.character).spriteKey;
@@ -92,8 +102,17 @@ export class GameScene extends Phaser.Scene {
       gameState.continueGame = false;
       this.scene.restart();
     };
+    this.hud.setHealth(this.health, this.maxHealth);
     this.hud.refresh();
 
+    this.damageFlash = this.add
+      .rectangle(0, 0, this.scale.width, this.scale.height, 0xff2020, 0)
+      .setOrigin(0, 0)
+      .setScrollFactor(0)
+      .setDepth(950);
+    this.cameras.main.ignore(this.damageFlash);
+
+    this.input.mouse?.disableContextMenu();
     this.setupInput();
 
     // Autosave
@@ -112,6 +131,11 @@ export class GameScene extends Phaser.Scene {
           this.hud.refresh();
         },
         count: (id: string) => this.inv.count(id),
+        hp: () => this.health,
+        lift: (tiles: number) => {
+          this.player.body.y -= tiles * TILE_SIZE;
+          this.player.body.vy = 0;
+        },
         tile: (tx: number, ty: number) => this.world.getTile(tx, ty),
         playerTile: () => ({
           tx: Math.floor(this.player.centerX / TILE_SIZE),
@@ -155,11 +179,17 @@ export class GameScene extends Phaser.Scene {
     kb.on("keydown-ESC", () => this.hud.toggleSettings());
 
     this.input.on("wheel", (_p: unknown, _o: unknown, _dx: number, dy: number) => this.hud.cycle(dy > 0 ? 1 : -1));
+  }
 
-    this.input.on("pointerdown", (p: Phaser.Input.Pointer) => {
-      if (this.hud.isAnyOpen()) return;
-      if (p.rightButtonDown()) this.tryPlace(p);
-    });
+  private lastPlaceMs = -9999;
+
+  private handlePlacing(): void {
+    if (this.hud.isAnyOpen()) return;
+    const p = this.input.activePointer;
+    if (p.rightButtonDown() && this.now - this.lastPlaceMs > 160) {
+      this.lastPlaceMs = this.now;
+      this.tryPlace(p);
+    }
   }
 
   private readInput(): { left: boolean; right: boolean; up: boolean; down: boolean; jump: boolean } {
@@ -174,16 +204,52 @@ export class GameScene extends Phaser.Scene {
     };
   }
 
-  update(_time: number, delta: number): void {
+  update(time: number, delta: number): void {
+    this.now = time;
     const dt = Math.min(delta / 1000, 0.05);
     this.player.update(this.world, dt, this.readInput());
     this.world.tick(delta);
 
+    this.updateHealth(dt);
     this.updateNearTable();
     this.handleMining(dt);
+    this.handlePlacing();
     this.renderTiles();
     this.drawFx();
     this.updateDayNight(dt);
+  }
+
+  private updateHealth(dt: number): void {
+    // Fall damage
+    const fell = this.player.lastFallTiles;
+    const SAFE = 9;
+    if (fell > SAFE) this.damage(Math.round((fell - SAFE) * 7));
+
+    // Slow regeneration a few seconds after taking damage
+    if (this.health < this.maxHealth && this.now - this.lastDamageMs > 4000) {
+      this.health = Math.min(this.maxHealth, this.health + dt * 6);
+      this.hud.setHealth(this.health, this.maxHealth);
+    }
+
+    // fade the damage flash
+    if (this.damageFlash.alpha > 0) this.damageFlash.setAlpha(Math.max(0, this.damageFlash.alpha - dt * 2));
+  }
+
+  private damage(amount: number): void {
+    if (amount <= 0) return;
+    this.health = Math.max(0, this.health - amount);
+    this.lastDamageMs = this.now;
+    this.damageFlash.setAlpha(0.5);
+    this.hud.setHealth(this.health, this.maxHealth);
+    if (this.health <= 0) this.die();
+  }
+
+  private die(): void {
+    const spawn = this.world.spawnTile();
+    this.player.respawn(spawn.x, spawn.y);
+    this.health = this.maxHealth;
+    this.hud.setHealth(this.health, this.maxHealth);
+    this.cameras.main.flash(400, 120, 0, 0);
   }
 
   private updateNearTable(): void {
@@ -335,7 +401,7 @@ export class GameScene extends Phaser.Scene {
           spr.setVisible(false);
           continue;
         }
-        spr.setVisible(true).setPosition(wx * TILE_SIZE, wy * TILE_SIZE).setFrame(t);
+        spr.setVisible(true).setPosition(wx * TILE_SIZE, wy * TILE_SIZE).setFrame(tileFrame(t, wx, wy));
       }
     }
   }
@@ -373,10 +439,14 @@ export class GameScene extends Phaser.Scene {
 
   private save(): void {
     writeSave(
-      snapshot(this.world, this.inv, this.hud.selected, this.character, {
-        x: this.player.body.x,
-        y: this.player.body.y,
-      }),
+      snapshot(
+        this.world,
+        this.inv,
+        this.hud.selected,
+        this.character,
+        { x: this.player.body.x, y: this.player.body.y },
+        this.health,
+      ),
     );
   }
 }

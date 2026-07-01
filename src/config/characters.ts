@@ -40,11 +40,11 @@ export const CHARACTERS: CharacterDef[] = [
     hairColor: 0x6b4423, // brown
     eyeColor: 0x8a8a8a, // grayish
     shirtColor: 0x111111, // black
-    hairLength: "medium-long",
+    hairLength: "short",
     build: "average",
     accessories: [],
     spriteKey: "char_leif",
-    blurb: "Brown hair, grayish eyes, black shirt, medium long hair.",
+    blurb: "Brown hair, grayish eyes, black shirt, short hair.",
   },
   {
     id: "jovan",
@@ -53,11 +53,11 @@ export const CHARACTERS: CharacterDef[] = [
     hairColor: 0x6b4423, // brown
     eyeColor: 0x6b4423, // brown
     shirtColor: 0xffffff, // white
-    hairLength: "medium-long",
+    hairLength: "short",
     build: "tall",
     accessories: [],
     spriteKey: "char_jovan",
-    blurb: "Taller than average, brown eyes, brown hair, white shirt, medium long hair.",
+    blurb: "Taller than average, brown eyes, brown hair, white shirt, short hair.",
   },
   {
     id: "leonidas",

@@ -231,3 +231,51 @@ export function generateItemIcons(scene: Phaser.Scene): void {
     c.tex.refresh();
   }
 }
+
+function drawHeart(ctx: CanvasRenderingContext2D, fill: number, outline: number): void {
+  // 11x10 pixel heart
+  const shape = [
+    "0110110",
+    "1111111",
+    "1111111",
+    "1111111",
+    "0111110",
+    "0011100",
+    "0001000",
+  ];
+  const ox = 2;
+  const oy = 1;
+  for (let y = 0; y < shape.length; y++) {
+    for (let x = 0; x < shape[y].length; x++) {
+      if (shape[y][x] === "1") f(ctx, ox + x, oy + y, 1, 1, fill);
+    }
+  }
+  // simple outline + shine
+  f(ctx, ox + 1, oy + 1, 2, 1, lighten(fill, 0.4));
+  void outline;
+}
+
+/** Hearts (full / half / empty) and other small UI icons. */
+export function generateUiIcons(scene: Phaser.Scene): void {
+  const full = makeCanvas(scene, "heart_full", 12, 11);
+  if (full) {
+    full.ctx.imageSmoothingEnabled = false;
+    drawHeart(full.ctx, 0xe23b45, 0x7a1220);
+    full.tex.refresh();
+  }
+  const half = makeCanvas(scene, "heart_half", 12, 11);
+  if (half) {
+    half.ctx.imageSmoothingEnabled = false;
+    drawHeart(half.ctx, 0xe23b45, 0x7a1220);
+    // grey out the right half
+    half.ctx.fillStyle = "rgba(40,40,50,0.9)";
+    half.ctx.fillRect(6, 0, 6, 11);
+    half.tex.refresh();
+  }
+  const empty = makeCanvas(scene, "heart_empty", 12, 11);
+  if (empty) {
+    empty.ctx.imageSmoothingEnabled = false;
+    drawHeart(empty.ctx, 0x3a2a30, 0x241c20);
+    empty.tex.refresh();
+  }
+}
