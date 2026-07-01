@@ -80,18 +80,18 @@ export class MenuScene extends Phaser.Scene {
     const { width, height } = this.scale;
     this.charPage = this.add.container(0, 0);
     this.charPage.add(
-      this.add.text(width / 2, 170, "Choose your character", { fontFamily: "monospace", fontSize: "18px", color: "#e8d8b0" }).setOrigin(0.5),
+      this.add.text(width / 2, 175, "Choose your character", { fontFamily: "monospace", fontSize: "18px", color: "#e8d8b0" }).setOrigin(0.5),
     );
 
     const gridW = COLS * CELL;
     const x0 = width / 2 - gridW / 2 + CELL / 2;
-    const y0 = 230;
+    const y0 = 248;
     CHARACTERS.forEach((c, i) => {
       const x = x0 + (i % COLS) * CELL;
       const y = y0 + Math.floor(i / COLS) * (CELL + 4);
       const card = this.add.container(x, y);
       const bg = this.add.rectangle(0, 0, CELL - 12, CELL - 8, 0x1a2431).setStrokeStyle(2, 0x394a5a);
-      const spr = this.add.image(0, -16, c.spriteKey, 0).setScale(3.2);
+      const spr = this.add.image(0, -14, c.spriteKey, 0).setScale(2.5);
       const name = this.add.text(0, 42, c.name, { fontFamily: "monospace", fontSize: "15px", color: "#f4ecd6" }).setOrigin(0.5);
       card.add([bg, spr, name]);
       card.setSize(CELL - 12, CELL - 8).setInteractive({ useHandCursor: true });

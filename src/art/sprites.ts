@@ -4,120 +4,138 @@ import { allItemIds, itemDef } from "../core/items";
 import { darken, hex, lighten, makeCanvas } from "./pixel";
 import { drawTile } from "./tileset";
 
-export const PW = 16; // player frame width
-export const PH = 24; // player frame height
-const OUT = 0x241c18;
-const PANTS = 0x394a63;
+export const PW = 20; // player frame width  (Terraria source is 20x28)
+export const PH = 28; // player frame height
+export const PLAYER_FRAMES = 6; // 0 idle, 1-4 walk, 5 jump
+const OUT = 0x201812;
+const PANTS = 0x3a4a66;
+const PANTS_SH = 0x2b3a52;
 const SHOES = 0x2a2320;
-
-type Pose = "idle" | "walkA" | "walkB" | "jump";
-const POSES: Pose[] = ["idle", "walkA", "walkB", "jump"];
 
 function f(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, c: number): void {
   ctx.fillStyle = hex(c);
   ctx.fillRect(x, y, w, h);
 }
 
+/** Filled rect with a 1px dark outline — the crisp pixel-art silhouette. */
 function part(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, c: number): void {
   f(ctx, x - 1, y - 1, w + 2, h + 2, OUT);
   f(ctx, x, y, w, h, c);
 }
 
-/** Side-view character facing right. Hair hangs down the back for longer lengths. */
-function drawPlayer(ctx: CanvasRenderingContext2D, x0: number, char: CharacterDef, pose: Pose): void {
+interface FramePose {
+  phase: -1 | 0 | 1; // leg/arm swing phase
+  jump: boolean;
+}
+const POSES: FramePose[] = [
+  { phase: 0, jump: false }, // idle
+  { phase: 1, jump: false }, // walk 1
+  { phase: 0, jump: false }, // walk 2 (pass)
+  { phase: -1, jump: false }, // walk 3
+  { phase: 0, jump: false }, // walk 4 (pass)
+  { phase: 0, jump: true }, // jump
+];
+
+/** Detailed 20x28 side-view character, facing right. */
+function drawPlayer(ctx: CanvasRenderingContext2D, x0: number, char: CharacterDef, pose: FramePose): void {
   const skin = char.skinTone;
-  const skinSh = darken(skin, 0.85);
+  const skinSh = darken(skin, 0.84);
+  const skinHl = lighten(skin, 0.14);
   const hair = char.hairColor;
-  const hairSh = darken(hair, 0.72);
-  const hairLt = lighten(hair, 0.2);
+  const hairSh = darken(hair, 0.68);
+  const hairHl = lighten(hair, 0.24);
   const shirt = char.shirtColor;
-  const shirtSh = darken(shirt, 0.78);
+  const shirtSh = darken(shirt, 0.76);
+  const shirtHl = lighten(shirt, 0.16);
 
   const musc = char.build === "muscular";
-  const tall = char.build === "tall";
-  const yShift = tall ? -1 : char.build === "short" ? 1 : 0;
+  const { phase, jump } = pose;
 
-  const headX = x0 + 5;
-  const headY = 2 + yShift;
-  const headW = 7;
-  const headH = 7;
+  // Geometry (relative to x0). Feet at y=27.
+  const hipY = 20;
+  const legW = 3;
+  const lBase = x0 + 6;
+  const rBase = x0 + 11;
 
-  // --- Back hair (drawn first, behind everything), length-dependent ---
-  const backX = x0 + 3;
-  if (char.hairLength === "medium") {
-    part(ctx, backX, headY + 1, 3, 9, hair);
-    f(ctx, backX, headY + 1, 1, 9, hairSh);
-  } else if (char.hairLength === "medium-long") {
-    part(ctx, backX - 1, headY + 1, 3, 14, hair); // long hanging strand
-    f(ctx, backX - 1, headY + 1, 1, 14, hairSh);
-    f(ctx, backX + 1, headY + 10, 2, 4, hair); // over the shoulder
+  // ---- Legs (behind torso) ----
+  const drawLeg = (baseX: number, dx: number, short: number) => {
+    const top = hipY;
+    const len = 7 - short;
+    part(ctx, baseX + dx, top, legW, len, PANTS);
+    f(ctx, baseX + dx + legW - 1, top, 1, len - 2, PANTS_SH);
+    f(ctx, baseX + dx, top + len - 2, legW, 2, SHOES); // shoe
+    f(ctx, baseX + dx, top + len - 1, legW + 1, 1, SHOES); // shoe toe
+  };
+  if (jump) {
+    drawLeg(lBase, -1, 2);
+    drawLeg(rBase, 1, 2);
+  } else {
+    drawLeg(lBase, -phase * 2, phase > 0 ? 1 : 0);
+    drawLeg(rBase, phase * 2, phase < 0 ? 1 : 0);
   }
 
-  // --- Legs (pose-dependent) ---
-  const hipY = 17 + yShift;
-  const legTop = hipY + 1;
-  const legLen = 5;
-  let lLegX = x0 + 5;
-  let rLegX = x0 + 8;
-  if (pose === "walkA") {
-    lLegX = x0 + 4;
-    rLegX = x0 + 9;
-  } else if (pose === "walkB") {
-    lLegX = x0 + 6;
-    rLegX = x0 + 7;
-  } else if (pose === "jump") {
-    lLegX = x0 + 4;
-    rLegX = x0 + 9;
-  }
-  const legH = pose === "jump" ? legLen - 1 : legLen;
-  for (const lx of [lLegX, rLegX]) {
-    part(ctx, lx, legTop, 3, legH, PANTS);
-    f(ctx, lx, legTop + legH - 2, 3, 2, SHOES);
-  }
+  // ---- Back arm (behind torso) ----
+  const tx = x0 + 5;
+  const tw = musc ? 11 : 10;
+  const ty = 12;
+  const th = hipY - ty;
+  part(ctx, tx - 2, ty + 1, 2, 6, shirtSh);
+  f(ctx, tx - 2, ty + 6, 2, 2, skinSh); // back hand
 
-  // --- Torso ---
-  const torsoX = x0 + 4;
-  const torsoW = musc ? 8 : 7;
-  const torsoY = 10 + yShift;
-  part(ctx, torsoX, torsoY, torsoW, hipY - torsoY + 1, shirt);
-  f(ctx, torsoX + torsoW - 2, torsoY, 2, hipY - torsoY + 1, shirtSh);
+  // ---- Torso ----
+  part(ctx, tx, ty, tw, th, shirt);
+  f(ctx, tx, ty, 1, th, shirtHl); // left highlight
+  f(ctx, tx + tw - 2, ty, 2, th, shirtSh); // right shade
+  f(ctx, tx, ty + th - 1, tw, 1, darken(shirt, 0.55)); // belt/hem
+  if (musc) f(ctx, tx + 2, ty + 2, tw - 4, 1, shirtHl); // chest
 
-  // --- Front arm ---
-  const armX = torsoX + torsoW - 1;
-  const armY = pose === "jump" ? torsoY - 1 : torsoY + 1;
-  part(ctx, armX, armY, 2, 6, shirt);
-  f(ctx, armX, armY + 5, 2, 2, skin); // hand
+  // ---- Front arm (swings) ----
+  const armSwing = jump ? 1 : phase * 1;
+  const faX = tx + tw - 1 + armSwing;
+  const faY = jump ? ty - 2 : ty + 1;
+  part(ctx, faX, faY, 3, 6, shirt);
+  f(ctx, faX + 2, faY, 1, 5, shirtSh);
+  f(ctx, faX, faY + 5, 3, 2, skin); // hand
 
-  // --- Head + face (facing right) ---
-  part(ctx, headX, headY, headW, headH, skin);
-  f(ctx, headX + headW - 1, headY + 1, 1, headH - 1, skinSh);
-  // eye near the front
-  f(ctx, headX + headW - 3, headY + 3, 2, 2, 0xffffff);
-  f(ctx, headX + headW - 2, headY + 3, 1, 2, char.eyeColor);
-  // mouth
-  f(ctx, headX + headW - 3, headY + 6, 2, 1, skinSh);
+  // ---- Head ----
+  const hx = x0 + 6;
+  const hy = 3;
+  const hw = 8;
+  const hh = 9;
+  part(ctx, hx, hy, hw, hh, skin);
+  f(ctx, hx, hy, 1, hh, skinHl); // left light
+  f(ctx, hx + hw - 1, hy + 1, 1, hh - 1, skinSh); // right cheek shade
+  f(ctx, hx - 1, hy + 4, 1, 3, skin); // ear
+  f(ctx, hx + hw, hy + 4, 1, 2, skinSh); // nose bump at the front
 
-  // --- Front / top hair ---
-  f(ctx, headX - 1, headY - 2, headW + 2, 3, hair); // crown
-  f(ctx, headX - 1, headY - 2, headW + 2, 1, hairLt);
-  f(ctx, headX - 1, headY, 2, 4, hair); // back-top of head
+  // ---- Face (facing right) ----
+  f(ctx, hx + hw - 4, hy + 3, 3, 1, hairSh); // brow
+  f(ctx, hx + hw - 4, hy + 4, 3, 2, 0xf4f4f4); // eye white
+  f(ctx, hx + hw - 3, hy + 4, 2, 2, char.eyeColor); // iris
+  f(ctx, hx + hw - 4, hy + 7, 2, 1, skinSh); // mouth
+
+  // ---- Hair (short for everyone) ----
+  part(ctx, hx - 1, hy - 2, hw + 2, 3, hair); // crown
+  f(ctx, hx - 1, hy - 2, hw + 2, 1, hairHl); // sheen
+  f(ctx, hx - 1, hy, 2, 5, hair); // back of head
+  f(ctx, hx - 1, hy, 1, 5, hairSh);
+  f(ctx, hx + hw - 4, hy - 1, 4, 2, hair); // fringe
+  f(ctx, hx + hw - 1, hy, 1, 3, hair); // short sideburn
   if (char.id === "leonidas") {
-    f(ctx, headX + 1, headY - 3, headW - 2, 2, hair); // quiff
+    f(ctx, hx + 1, hy - 3, hw - 3, 2, hair); // styled quiff
+    f(ctx, hx + 1, hy - 3, hw - 4, 1, hairHl);
   }
-  if (char.id === "lenni") {
-    f(ctx, headX + 2, headY - 1, 2, 2, skin); // middle part hint
-  }
-  // fringe over forehead
-  f(ctx, headX + headW - 4, headY - 1, 4, 2, hair);
 
-  // --- Accessories ---
+  // ---- Accessories ----
   if (char.accessories.includes("glasses")) {
-    ctx.strokeStyle = hex(0x1b1b1b);
+    ctx.strokeStyle = hex(0x181818);
     ctx.lineWidth = 1;
-    ctx.strokeRect(headX + headW - 4.5, headY + 2.5, 3, 3);
+    ctx.strokeRect(hx + hw - 4.5, hy + 3.5, 3, 3);
+    f(ctx, hx + hw - 1, hy + 4, 1, 1, 0x181818); // bridge to ear
   }
   if (char.accessories.includes("goatee")) {
-    f(ctx, headX + headW - 4, headY + headH - 1, 3, 2, hairSh);
+    f(ctx, hx + hw - 4, hy + hh - 1, 3, 2, hairSh);
+    f(ctx, hx + hw - 3, hy + hh + 1, 2, 1, hair);
   }
 }
 
@@ -125,11 +143,11 @@ export function generatePlayerTextures(scene: Phaser.Scene): void {
   for (const char of CHARACTERS) {
     const key = char.spriteKey;
     if (scene.textures.exists(key)) continue;
-    const tex = scene.textures.createCanvas(key, PW * POSES.length, PH);
+    const tex = scene.textures.createCanvas(key, PW * PLAYER_FRAMES, PH);
     if (!tex) continue;
     const ctx = tex.getContext();
     ctx.imageSmoothingEnabled = false;
-    ctx.clearRect(0, 0, PW * POSES.length, PH);
+    ctx.clearRect(0, 0, PW * PLAYER_FRAMES, PH);
     POSES.forEach((pose, i) => {
       drawPlayer(ctx, i * PW, char, pose);
       tex.add(i, 0, i * PW, 0, PW, PH);

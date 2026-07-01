@@ -79,11 +79,11 @@ export const CHARACTERS: CharacterDef[] = [
     hairColor: 0x111111, // black
     eyeColor: 0x6b4423, // brown
     shirtColor: 0x2b4a6b, // navy
-    hairLength: "medium",
+    hairLength: "short",
     build: "average",
     accessories: ["glasses", "goatee"],
     spriteKey: "char_erim",
-    blurb: "Black hair (medium length), black goatee, brown eyes, glasses.",
+    blurb: "Black hair, black goatee, brown eyes, glasses.",
   },
   {
     id: "till",
@@ -105,11 +105,11 @@ export const CHARACTERS: CharacterDef[] = [
     hairColor: 0x6b4423, // brown, middle part
     eyeColor: 0x6b4423, // brown
     shirtColor: 0x1e4d2b, // dark green
-    hairLength: "medium",
+    hairLength: "short",
     build: "average",
     accessories: ["glasses"],
     spriteKey: "char_lenni",
-    blurb: "Brown hair with a middle part, glasses, brown eyes, dark green shirt.",
+    blurb: "Brown short hair, glasses, brown eyes, dark green shirt.",
   },
   {
     id: "tusya",

@@ -25,10 +25,10 @@ export class Player {
 
   constructor(scene: Phaser.Scene, spriteKey: string, tileX: number, tileY: number) {
     this.body = {
-      x: tileX * TILE_SIZE + 3,
+      x: tileX * TILE_SIZE + 2,
       y: tileY * TILE_SIZE,
-      w: 10,
-      h: 22,
+      w: 12,
+      h: 24,
       vx: 0,
       vy: 0,
       onGround: false,
@@ -98,16 +98,16 @@ export class Player {
     if (b.onGround) this.airMinY = b.y;
     this.wasOnGround = b.onGround;
 
-    // Animation frame selection
+    // Animation frame selection: 0 idle, 1-4 walk cycle, 5 jump
     let frame = 0;
     if (this.submerged) {
       this.animTime += dt;
-      frame = Math.floor(this.animTime * 6) % 2 === 0 ? 1 : 2;
+      frame = 1 + (Math.floor(this.animTime * 6) % 4);
     } else if (!b.onGround) {
-      frame = 3; // jump/fall
+      frame = 5; // jump / fall
     } else if (b.vx !== 0) {
       this.animTime += dt;
-      frame = Math.floor(this.animTime * 8) % 2 === 0 ? 1 : 2;
+      frame = 1 + (Math.floor(this.animTime * 9) % 4);
     } else {
       this.animTime = 0;
       frame = 0;
