@@ -1,7 +1,6 @@
 import Phaser from "phaser";
-import { CHARACTERS } from "../config/characters";
-import { generateCharacterTexture } from "../art/characters";
-import { generateWorldTextures } from "../art/world";
+import { generateTileset, generateCaveBack } from "../art/tileset";
+import { generatePlayerTextures, generateItemIcons } from "../art/sprites";
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -9,11 +8,10 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
-    for (const char of CHARACTERS) {
-      generateCharacterTexture(this, char);
-    }
-    generateWorldTextures(this);
-
-    this.scene.start("CharacterSelect");
+    generateTileset(this);
+    generateCaveBack(this);
+    generatePlayerTextures(this);
+    generateItemIcons(this);
+    this.scene.start("Menu");
   }
 }

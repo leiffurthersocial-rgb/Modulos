@@ -1,24 +1,21 @@
 import Phaser from "phaser";
 import { BootScene } from "./scenes/BootScene";
-import { CharacterSelectScene } from "./scenes/CharacterSelectScene";
-import { TownScene } from "./scenes/TownScene";
-import { DungeonScene } from "./scenes/DungeonScene";
+import { MenuScene } from "./scenes/MenuScene";
+import { GameScene } from "./scenes/GameScene";
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
-  width: 800,
+  width: 960,
   height: 600,
   parent: "game-container",
-  backgroundColor: "#1a1a24",
+  backgroundColor: "#12121c",
   pixelArt: true,
-  physics: {
-    default: "arcade",
-    arcade: {
-      gravity: { x: 0, y: 0 },
-      debug: false,
-    },
+  roundPixels: true,
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: [BootScene, CharacterSelectScene, TownScene, DungeonScene],
+  scene: [BootScene, MenuScene, GameScene],
 };
 
 new Phaser.Game(config);

@@ -1,87 +1,98 @@
 # Modulos
 
-A 16-bit pixel-art game in the spirit of **Stardew Valley** and **Terraria** — a
-cozy home-base town connected to a mineable dungeon. Built with **Phaser 3 +
-TypeScript**, bundled by **Vite**, and deployable as a static site to **Vercel**.
+A 2D pixel-art sandbox in the spirit of **Terraria** / "2D Minecraft" — explore an
+**infinite, procedurally-generated world**, dig and place blocks with gravity and
+jumping, **craft** tools, and **farm** crops and trees. Built with **Phaser 3 +
+TypeScript**, bundled by **Vite**, deployable as a static site to **Vercel**.
 
-> This is an early playable **MVP scaffold** — the core loop works end to end, and
-> the art is generated procedurally as a placeholder that's designed to be swapped
-> for hand-drawn sprites later (see [Art](#art)).
+Your world and inventory **autosave to the browser**, so you can pick up where you
+left off.
 
-## The game so far
+## Play
 
-- **Character select** — pick one of eight characters as your avatar. The rest
-  appear around town as NPCs you can talk to.
-- **Town (home base)** — a tree-enclosed clearing with a house, a pond, bushes,
-  flowers, a cobblestone path, and wandering NPCs. Walk with **WASD / arrow keys**,
-  press **E** near an NPC to talk.
-- **Mine / Dungeon** — walk into the cave entrance to descend. Bump into ore rocks
-  to mine them (3 hits each), watch your **Ore** counter climb, then take the
-  ladder back up to town.
+- **Menu** — pick one of eight characters (Robin, Leif, Jovan, Leonidas, Erim, Till,
+  Lenni, Tusya) as your avatar, then **Play**. If you have a saved world, **Continue**.
+- **World** — an endless side-view world: grassy hills and trees on the surface, dirt,
+  then stone with **caves and ore** (coal, iron, gold, gem) as you dig deeper, down to
+  bedrock. A day/night cycle darkens the surface and caves are dark underground.
 
-### The cast
+### Controls
 
-Robin, Leif, Jovan, Leonidas, Erim, Till, Lenni, and Tusya — each defined by data
-(hair, eyes, shirt, build, accessories) in [`src/config/characters.ts`](src/config/characters.ts).
+| Action              | Keys / Mouse                    |
+| ------------------- | ------------------------------- |
+| Move                | `A` / `D` or `←` / `→`          |
+| Jump                | `Space` / `W` / `↑`             |
+| Climb ladders       | `W` / `S` while on a ladder     |
+| Mine block          | **Left-click** (hold)           |
+| Place / use item    | **Right-click**                 |
+| Select hotbar slot  | `1`–`9` or mouse wheel          |
+| Inventory + Crafting| `E` (or `C`)                    |
+| Settings / pause    | `Esc`                           |
 
-## Run it locally
+### What you can do
+
+- **Mine** any block within reach. Tool tier matters — deeper ores need better
+  pickaxes. Blocks drop items into your inventory.
+- **Build** by placing blocks from your hotbar next to existing terrain.
+- **Craft** in the inventory panel: logs → planks → sticks → a crafting table, then
+  wooden and stone **pickaxes / axes / shovels / hoes**, plus torches, ladders, doors,
+  and bread. Tool recipes need a crafting table nearby.
+- **Farm**: hoe grass/dirt into farmland, plant **wheat seeds** (from tall grass) and
+  watch them grow, then harvest wheat. Plant **saplings** (from leaves) on grass and
+  they grow into full trees you can chop.
+
+You start with a wooden pickaxe, a wooden axe, and a few torches.
+
+## Run locally
 
 ```bash
 npm install
 npm run dev      # http://localhost:5173
+npm run build    # type-check + static build into dist/
+npm run preview  # serve the production build
 ```
 
-### Controls
+Deployment to **Vercel** is zero-config (`vercel.json` sets the build command and
+`dist` output); pushing to the connected GitHub repo triggers a deploy.
 
-| Action        | Keys                    |
-| ------------- | ----------------------- |
-| Move          | WASD or Arrow keys      |
-| Talk / close  | E (near an NPC)         |
-| Enter mine    | Walk onto the ▼ MINE    |
-| Leave mine    | Walk onto the ▲ EXIT ladder |
-| Mine a rock   | Walk into it            |
+## Architecture
 
-## Build & deploy
-
-```bash
-npm run build    # type-checks, then outputs a static site to dist/
-npm run preview  # serve the production build locally
-```
-
-Deployment to **Vercel** is zero-config — `vercel.json` sets the build command and
-`dist` output directory, so pushing to the connected GitHub repo triggers a deploy.
-
-## Project structure
+All art is **generated at runtime** as 16px pixel-art — there are no image assets to
+manage. The world is chunked and infinite horizontally, bounded in depth.
 
 ```
 src/
-  main.ts                 Phaser game config + scene list
-  state.ts                Tiny singleton holding the chosen character
-  config/characters.ts    All 8 characters as data (traits → sprite)
+  main.ts               Phaser config (custom AABB physics, no global gravity)
+  state.ts              selected character + settings
+  config/characters.ts  the 8 characters as recolorable side-view skins
+  core/
+    constants.ts        tile size, chunk width, world height
+    rng.ts              seeded PRNG + value-noise / fbm
+    tiles.ts            tile registry (solidity, hardness, tool, drops)
+    items.ts            item registry (blocks, tools, materials, seeds, food)
+    recipes.ts          crafting recipes
+    worldgen.ts         deterministic chunk generation (terrain, caves, ores, trees)
+    world.ts            chunk store, get/set tiles, plant-growth tick
+    inventory.ts        stacking inventory + hotbar
+    save.ts             localStorage save (seed + edit deltas + inventory)
+  systems/physics.ts    AABB-vs-tile collision, gravity, jump
   art/
-    pixel.ts              Low-level pixel/canvas + shading + RNG helpers
-    characters.ts         Procedural 16-bit character sprite generator
-    world.ts              Tiles (grass/dirt/stone/water/path/cave) + props
+    pixel.ts            canvas/pixel/RNG helpers
+    tileset.ts          16px tileset spritesheet + cave background
+    sprites.ts          player rig (idle/walk/jump) + item icons
+  entities/Player.ts    side-view player body + animation
+  ui/Hud.ts             hotbar, inventory, crafting, settings (own UI camera)
   scenes/
-    BootScene.ts          Generates all textures, then goes to select
-    CharacterSelectScene.ts
-    TownScene.ts          Home base: NPCs, dialogue, mine entrance
-    DungeonScene.ts       Cave: mineable ore, ladder exit
-  entities/
-    Player.ts             8-directional arcade-physics movement
-    NPC.ts
-  ui/DialogueBox.ts
+    BootScene.ts        build textures
+    MenuScene.ts        title + character picker + Continue
+    GameScene.ts        world render, input, mining/placing, day/night, autosave
 ```
 
-## Art
+Rendering uses a fixed **pool of tile sprites** that follows the camera, so an
+infinite world draws with a constant number of objects. A separate UI camera keeps the
+HUD crisp and unzoomed over the 3× zoomed world.
 
-All sprites and tiles are **generated at runtime** from the character/tile data in
-`src/art/*` — there are no image files to manage yet. This keeps the project
-runnable while real pixel art is produced. To swap in hand-drawn art later, load a
-spritesheet under a character's `spriteKey` in `BootScene` and the generator for
-that key is skipped.
+## Roadmap
 
-## Roadmap ideas
-
-Farming plots and crops · NPC friendship/relationships · tools & inventory · deeper
-procedurally-generated mine levels with enemies · save/load · day–night and seasons.
+Enemies & combat · health/hunger · flowing liquids · more biomes · per-tile lighting ·
+chests & storage · sound · multiplayer.
